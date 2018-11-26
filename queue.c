@@ -128,7 +128,7 @@ void q_delete(Queue *queue) {
     Node *cursor, *tmp;
 
     pthread_mutex_lock(&(queue -> mutex));
-    if (!queue -> size) {
+    if (!queue || !queue -> size) {
         pthread_mutex_unlock(&(queue -> mutex));
         return;
     }
@@ -175,23 +175,3 @@ void q_print(Queue *queue) {
 /* Prints the contents of the queue */
 unsigned long q_size(Queue *queue) { return queue -> head ? queue -> size : -1; }
 
-void test() { printf("Hello world\n"); }
-
-int main() {
-
-    void (*fn)(void);
-    Queue *queue; // queue used in testing
-    int i; // loop variable
-
-    queue = q_init();
-    for (i = 0; i < 5; i++) q_insert(queue, test);
-
-    q_print(queue);
-    for (i = 0; i < 6; i++) {
-        fn = q_pop(queue);
-        fn();
-    }
-    q_delete(queue);
-
-    return 0;
-}

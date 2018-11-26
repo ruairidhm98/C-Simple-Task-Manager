@@ -1,7 +1,7 @@
 CC=clang
 CFLAGS=-Wall -Werror -std=c99 -g
 EXE=system
-OBJ=queue.o
+OBJ=queue.o task_system.o
 
 # Creates executable file from object code
 $(EXE) : $(OBJ)
