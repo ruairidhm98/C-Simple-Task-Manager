@@ -12,12 +12,15 @@ int q_insert(Queue *queue, void (*f)(void));
 void (*q_pop(Queue *queue))(void);
 /* Returns the front of the queue without removing it */
 void (*q_front(Queue *queue))(void);
-/* Returns the size of the queue */
-unsigned long q_size(Queue *queue);
 /* Deletes a queue object */
 void q_delete(Queue *queue); 
 /* Prints the contents of the queue */
 void q_print(Queue *queue);
+/* Returns the size of the queue */
+unsigned long q_size(Queue *queue);
+/* Sets done to true, so we know we are finished */
+void q_set_done(Queue *queue);
 
 #endif 
+
 

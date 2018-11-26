@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <pthread.h>
 #include "queue.h"
 
@@ -11,11 +12,18 @@ struct q_elt {
 
 /* Queue implemented as a singly linked list */
 struct queue {
+    bool done; // if done is false, then there is still work on the queue
     Node *head; // pointer to the head of the list
     Node *tail; // pointer to the tail of the list
     unsigned long size; // size counter
     pthread_mutex_t mutex; // mutex used to ensure thread safety
     pthread_cond_t delete; // condition variable used to notify threads when deleting
+};
+
+/* Arguments used in insert */
+struct args {
+    Queue *queue; // queue being accessed
+    void (*fn)(void); // function pointer being inserted
 };
 
 /* Returns a pointer to an empty queue if successfull, NULL otherwise */
@@ -31,6 +39,7 @@ Queue *q_init() {
         q = NULL;
         return NULL;
     }
+    q -> done = false;
     q -> head = NULL;
     q -> tail = NULL;
     q -> size = 0;
@@ -96,10 +105,12 @@ void (*q_pop(Queue *queue))(void) {
     
     pthread_mutex_lock(&(queue -> mutex));
     /* Make the thread sleep until there is more work */
-    if (!queue -> size) {
+    if (!(queue -> head) || queue -> done) {
         printf("== Queue is empty ==\n");
         pthread_cond_wait(&(queue -> delete), &(queue -> mutex));;
     }
+    /* If done was set to false, then deal with the case of the queue being empty */
+    if (!queue -> head) return NULL;
     temp = queue -> head;
     result = temp -> fn;
     queue -> head = temp -> next;
@@ -115,9 +126,12 @@ void (*q_front(Queue *queue))(void) {
 
     void (*fn)(void);
 
-    pthread_mutex_lock(&(queue -> mutex));
-    fn = queue -> head -> fn;
-    pthread_mutex_unlock(&(queue -> mutex));
+    fn = NULL;
+    if (queue -> size) {
+        pthread_mutex_lock(&(queue -> mutex));
+        fn = queue -> head -> fn;
+        pthread_mutex_unlock(&(queue -> mutex));
+    }
 
     return fn;
 }
@@ -128,7 +142,7 @@ void q_delete(Queue *queue) {
     Node *cursor, *tmp;
 
     pthread_mutex_lock(&(queue -> mutex));
-    if (!queue || !queue -> size) {
+    if (!queue) {
         pthread_mutex_unlock(&(queue -> mutex));
         return;
     }
@@ -175,3 +189,37 @@ void q_print(Queue *queue) {
 /* Prints the contents of the queue */
 unsigned long q_size(Queue *queue) { return queue -> head ? queue -> size : -1; }
 
+/* Set's done to true, to let threads know we are finished */
+void q_set_done(Queue *queue) {
+    pthread_mutex_lock(&(queue -> mutex));
+    queue -> done = true;
+    pthread_mutex_unlock(&(queue -> mutex));
+    pthread_cond_broadcast(&(queue -> delete));
+}
+
+/* Safe insert */
+void *insert(void *arg) {
+
+    Queue *queue;
+    void (*fn)(void);
+    struct args *arguments;
+
+    arguments = (struct args *) arg;
+    queue = arguments -> queue;
+    fn = arguments -> fn;
+    q_insert(queue, fn);
+
+    pthread_exit(NULL);
+}
+
+/* Safe pop */
+void *pop(void *arg) {
+
+    Queue *queue;
+    void (*result)(void);
+
+    queue = (Queue *) arg;
+    result = q_pop(queue);
+
+    pthread_exit((void *) result);
+}

@@ -6,7 +6,7 @@ typedef struct task_system TaskSystem;
 /* Returns a pointer to an empty task system if successfull, NULL otherwise */
 TaskSystem *ts_init(unsigned int numThreads);
 /* Launches a process on the queue */
-void ts_asynch(void (*fn)(void));
+void ts_asynch(TaskSystem *ts, void (*fn)(void));
 /* Deletes a task system object */
 void ts_delete(TaskSystem *ts);
 

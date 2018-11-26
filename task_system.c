@@ -7,7 +7,6 @@
 
 /* Task system structure */
 struct task_system {
-    bool done; // if done is false, then there is still work on the queue
     Queue *work_q; // the work queue
     pthread_t *threads; // threads used to start tasks 
     unsigned int NUM_THREADS; // the number of threads in the task system  
@@ -22,7 +21,6 @@ void *run(void *arg) {
     ts = (TaskSystem *) arg;
     /* Loop forever until notified we are done */
     while (true) {
-        break;
         fnPtr = q_pop(ts -> work_q);    
         if (!fnPtr) pthread_exit(NULL);
         fnPtr();
@@ -34,7 +32,7 @@ void *run(void *arg) {
 /* Returns a pointer to a task system object if successfull, NULL otherwise */
 TaskSystem *ts_init(unsigned int numThreads) {
 
-    TaskSystem *ts;
+    TaskSystem *ts; 
     int i;
 
     ts = (TaskSystem *) malloc(sizeof(TaskSystem));
@@ -45,7 +43,6 @@ TaskSystem *ts_init(unsigned int numThreads) {
         ts = NULL;
         return ts;
     }   
-    ts -> done = false;
     ts -> NUM_THREADS = numThreads;
     ts -> work_q = q_init();
     if (!(ts -> work_q)) {
@@ -61,7 +58,7 @@ TaskSystem *ts_init(unsigned int numThreads) {
     }
     /* Spawn threads */
     for (i = 0; i < numThreads; i++) 
-        if (pthread_create(&(ts -> threads[i]), NULL, run, NULL)) {
+        if (pthread_create(&(ts -> threads[i]), NULL, run, (void *) ts)) {
             fprintf(stderr, "Error: failed to create thread %d\n", i+1);
             ts_delete(ts);
             return ts;
@@ -70,11 +67,15 @@ TaskSystem *ts_init(unsigned int numThreads) {
     return ts;
 }
 
+/* Adds a task to the queue */
+void ts_asynch(TaskSystem *ts, void (*fn)(void)) { q_insert(ts -> work_q, fn); }
+
 /* Deletes a task system object */
 void ts_delete(TaskSystem *ts) {
     
     int i;
 
+    q_set_done(ts -> work_q);
     /* Wait for threads to finish */
     for (i = 0; i < ts -> NUM_THREADS; i++) 
         pthread_join(ts -> threads[i], NULL);
@@ -84,4 +85,18 @@ void ts_delete(TaskSystem *ts) {
     free((void *) ts -> threads);
     ts = NULL;
 
+}
+
+/* Tester function */
+void test() { printf("Hello world\n"); }
+
+int main() {
+
+    TaskSystem *ts;
+
+    ts = ts_init(1);
+    printf("I get here\n");
+    ts_delete(ts);
+
+    return 0;
 }
