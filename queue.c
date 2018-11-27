@@ -130,11 +130,9 @@ void (*q_front(Queue *queue))(void) {
     void (*fn)(void);
 
     fn = NULL;
-    if (queue -> size) {
-        pthread_mutex_lock(&(queue -> mutex));
-        fn = queue -> head -> fn;
-        pthread_mutex_unlock(&(queue -> mutex));
-    }
+    pthread_mutex_lock(&(queue->mutex));
+    if (queue -> size) fn = queue -> head -> fn;
+    pthread_mutex_unlock(&(queue->mutex));
 
     return fn;
 }
