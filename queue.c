@@ -110,7 +110,7 @@ void (*q_pop(Queue *queue))(void) {
         pthread_cond_wait(&(queue -> delete), &(queue -> mutex));;
     }
     /* If done was set to false, then deal with the case of the queue being empty */
-    if (!queue -> head) return NULL;
+    if (!(queue -> size)) return NULL;
     temp = queue -> head;
     result = temp -> fn;
     queue -> head = temp -> next;
@@ -194,7 +194,7 @@ void q_set_done(Queue *queue) {
     pthread_mutex_lock(&(queue -> mutex));
     queue -> done = true;
     pthread_mutex_unlock(&(queue -> mutex));
-    pthread_cond_broadcast(&(queue -> delete));
+    pthread_cond_broadcast(&(queue -> delete));  
 }
 
 /* Safe insert */

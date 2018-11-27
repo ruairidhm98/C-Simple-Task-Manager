@@ -94,8 +94,12 @@ int main() {
 
     TaskSystem *ts;
 
-    ts = ts_init(1);
-    printf("I get here\n");
+    ts = ts_init(4);
+    ts_asynch(ts, test);
+    ts_asynch(ts, test);
+    ts_asynch(ts, test);
+    ts_asynch(ts, test);
+
     ts_delete(ts);
 
     return 0;
