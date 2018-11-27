@@ -94,7 +94,7 @@ int main() {
 
     TaskSystem *ts;
 
-    ts = ts_init(3);
+    ts = ts_init(4);
     ts_asynch(ts, test);
     ts_asynch(ts, test);
     ts_asynch(ts, test);

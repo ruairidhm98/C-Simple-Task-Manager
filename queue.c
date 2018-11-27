@@ -91,7 +91,7 @@ int q_insert(Queue *queue, void (*fn)(void)) {
     }
     queue -> size++;
     pthread_mutex_unlock(&(queue -> mutex));
-    /* Notify threads that are sleeping */
+    /* Notify one thread that is sleeping */
     pthread_cond_signal(&(queue -> delete));
 
     return 1;
@@ -105,12 +105,12 @@ void (*q_pop(Queue *queue))(void) {
     
     pthread_mutex_lock(&(queue -> mutex));
     /* Make the thread sleep until there is more work */
-    while (!(queue -> head) || queue -> done) {
+    while (!(queue -> size) && !(queue -> done)) {
         printf("== Queue is empty ==\n");
         pthread_cond_wait(&(queue -> delete), &(queue -> mutex));
     }
     /* If done was set to false, then deal with the case of the queue being empty */
-    if (!(queue -> head)) {
+    if (!(queue -> size)) {
         pthread_mutex_unlock(&(queue -> mutex));
         return NULL;
     }
@@ -197,6 +197,7 @@ void q_set_done(Queue *queue) {
     pthread_mutex_lock(&(queue -> mutex));
     queue -> done = true;
     pthread_mutex_unlock(&(queue -> mutex));
+    /* Wake up all threads */
     pthread_cond_broadcast(&(queue -> delete));  
 }
 
