@@ -77,7 +77,7 @@ void ts_delete(TaskSystem *ts) {
 
     q_set_done(ts -> work_q);
     /* Wait for threads to finish */
-    for (i = 0; i < ts -> NUM_THREADS; i++) 
+    for (i = 0; i < (ts -> NUM_THREADS); i++) 
         pthread_join(ts -> threads[i], NULL);
     /* Free heap memory */
     q_delete(ts -> work_q);
@@ -94,8 +94,11 @@ int main() {
 
     TaskSystem *ts;
 
-    ts = ts_init(1);
-    printf("I get here\n");
+    ts = ts_init(3);
+    ts_asynch(ts, test);
+    ts_asynch(ts, test);
+    ts_asynch(ts, test);
+
     ts_delete(ts);
 
     return 0;
