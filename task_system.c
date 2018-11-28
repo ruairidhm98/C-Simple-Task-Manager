@@ -132,9 +132,9 @@ void ts_delete(TaskSystem *ts) {
     /* Free heap memory */
     for (i = 0; i < (ts -> NUM_QUEUES); i++) q_delete(ts -> work_q[i]);
 
-    free((void *)ts -> work_q);
-    free((void *) ts);
+    free((void *) ts -> work_q);
     free((void *) ts -> threads);
+    free((void *) ts);
     ts = NULL;
 
 }
