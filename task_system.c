@@ -126,15 +126,15 @@ void ts_delete(TaskSystem *ts) {
     int i;
 
     /* Notify the task system we are done */
-    for (i = 0; i < (ts -> NUM_THREADS); i++) q_set_done(ts -> work_q[i]);
+    for (i = 0; i < (ts -> NUM_QUEUES); i++) q_set_done(ts -> work_q[i]);
     /* Wait for threads to finish */
     for (i = 0; i < (ts -> NUM_THREADS); i++) pthread_join(ts -> threads[i], NULL);
     /* Free heap memory */
     for (i = 0; i < (ts -> NUM_QUEUES); i++) q_delete(ts -> work_q[i]);
 
+    free((void *)ts -> work_q);
     free((void *) ts);
     free((void *) ts -> threads);
-    free((void *) ts -> work_q);
     ts = NULL;
 
 }
