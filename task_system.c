@@ -1,4 +1,5 @@
 /* Simple task system which uses multiple queues, two threads are assigned to each queue */
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -8,12 +9,15 @@
 
 #define THREADS_PER_QUEUE 2
 
+struct func_args *args;
+
 /* Task system structure */
 struct task_system {
     Queue **work_q; // the work queue
     pthread_t *threads; // threads used to start tasks 
     unsigned int NUM_THREADS; // the number of threads in the task system  
     unsigned int NUM_QUEUES; // number of queues
+    pthread_mutex_t ts_mutex; // mutex used to protect shared data
 }; 
 
 /* Arguments passed into run */
@@ -36,7 +40,7 @@ void *run(void *arg) {
     /* Loop forever until notified we are done */
     while (true) {
         fnPtr = q_pop(ts -> work_q[index]);    
-        if (!fnPtr) pthread_exit(NULL);
+        if (!fnPtr) break;
         fnPtr();
     }
 
@@ -46,7 +50,6 @@ void *run(void *arg) {
 /* Returns a pointer to a task system object if successfull, NULL otherwise */
 TaskSystem *ts_init(unsigned int numQueues) {
 
-    struct func_args *args;
     unsigned int i, j;
     TaskSystem *ts; 
 
@@ -61,8 +64,15 @@ TaskSystem *ts_init(unsigned int numQueues) {
     
     ts -> NUM_THREADS = numQueues * THREADS_PER_QUEUE;
     ts -> NUM_QUEUES = numQueues;
+    /* Print error message and return NULL if memory allocation fails */
+    if (pthread_mutex_init(&(ts -> ts_mutex), NULL)) {
+        fprintf(stderr, "Error: failed to create mutex\n");
+        free((void *) ts);
+        ts = NULL;
+        return ts;
+    }
+
     ts -> work_q = (Queue **) malloc(sizeof(Queue *) * numQueues);
-    
     if (!(ts -> work_q)) {
         fprintf(stderr, "Error: memory allocation failed\n");
         free((void *) ts);
@@ -135,6 +145,7 @@ void ts_delete(TaskSystem *ts) {
     free((void *) ts -> work_q);
     free((void *) ts -> threads);
     free((void *) ts);
+    free((void *) args);
     ts = NULL;
 
 }
@@ -142,19 +153,39 @@ void ts_delete(TaskSystem *ts) {
 /* Tester function */
 void test() { printf("Hello world\n"); }
 
-int main() {
+int main(int argc, char **argv) {
 
+    double t1, t2;
     TaskSystem *ts;
+    int i, numQueues, numProcesses;
 
-    ts = ts_init(2);
-    ts_asynch(ts, test);
-    ts_asynch(ts, test);
-    ts_asynch(ts, test);
-    ts_asynch(ts, test);
-    ts_asynch(ts, test);
-    ts_asynch(ts, test);
+    /* Check if the correct nuber of command line arguments have been passed */
+    if (argc != 3) {
+        fprintf(stderr, "Error: wrong number of command line arguments entered\n");
+        fprintf(stderr, "Expected: 2\n");
+        fprintf(stderr, "Got: %d\n", argc);
+        fprintf(stderr, "Exiting with 1 (invalid command line arguments)\n");
+        return 1;
+    }
+    numQueues = -1;
+    numProcesses = -1;
+    sscanf(argv[1], "%d", &numQueues);
+    sscanf(argv[2], "%d", &numProcesses);
+    if (numQueues < 1 || numProcesses < -1) {
+        fprintf(stderr, "Error: argv[1] or argv[2] was invalid\n");
+        fprintf(stderr, "Exiting with 1 (invalid command line arguments)\n");
+        return 1;
+    }
+    ts = ts_init(numQueues);
+    if (!ts) {
+        fprintf(stderr, "Exiting with 2 (malloc failure)\n");
+        return 2;
+    }
 
-    ts_delete(ts);
+    for (i = 0; i < numProcesses; i++)
+        test();
+
+    for (i = 0; i < numProcesses; i++) ts_asynch(ts, test);
 
     return 0;
 }

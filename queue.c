@@ -114,11 +114,15 @@ void (*q_pop(Queue *queue))(void) {
         pthread_mutex_unlock(&(queue -> mutex));
         return NULL;
     }
-    temp = queue -> head;
-    result = temp -> fn;
-    queue -> head = temp -> next;
-    queue -> size--;
-    free((void *) temp);
+    
+    /* Ensuring more thread safety */
+    if (queue || queue -> head) {
+        temp = queue -> head;
+        result = temp -> fn;
+        queue -> head = temp -> next;
+        queue -> size--;
+        free((void *) temp);
+    }
     pthread_mutex_unlock(&(queue -> mutex));
 
     return result;
