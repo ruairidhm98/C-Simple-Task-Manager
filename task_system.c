@@ -142,6 +142,7 @@ void ts_delete(TaskSystem *ts) {
     /* Free heap memory */
     for (i = 0; i < (ts -> NUM_QUEUES); i++) q_delete(ts -> work_q[i]);
 
+    pthread_mutex_destroy(&(ts -> ts_mutex)); 
     free((void *) ts -> work_q);
     free((void *) ts -> threads);
     free((void *) ts);
@@ -155,37 +156,14 @@ void test() { printf("Hello world\n"); }
 
 int main(int argc, char **argv) {
 
-    double t1, t2;
     TaskSystem *ts;
-    int i, numQueues, numProcesses;
+    int i;
 
-    /* Check if the correct nuber of command line arguments have been passed */
-    if (argc != 3) {
-        fprintf(stderr, "Error: wrong number of command line arguments entered\n");
-        fprintf(stderr, "Expected: 2\n");
-        fprintf(stderr, "Got: %d\n", argc);
-        fprintf(stderr, "Exiting with 1 (invalid command line arguments)\n");
-        return 1;
-    }
-    numQueues = -1;
-    numProcesses = -1;
-    sscanf(argv[1], "%d", &numQueues);
-    sscanf(argv[2], "%d", &numProcesses);
-    if (numQueues < 1 || numProcesses < -1) {
-        fprintf(stderr, "Error: argv[1] or argv[2] was invalid\n");
-        fprintf(stderr, "Exiting with 1 (invalid command line arguments)\n");
-        return 1;
-    }
-    ts = ts_init(numQueues);
-    if (!ts) {
-        fprintf(stderr, "Exiting with 2 (malloc failure)\n");
-        return 2;
-    }
+    ts = ts_init(4);
+    for (i = 0; i < 50; i++)
+        ts_asynch(ts, test);
 
-    for (i = 0; i < numProcesses; i++)
-        test();
-
-    for (i = 0; i < numProcesses; i++) ts_asynch(ts, test);
+    ts_delete(ts);
 
     return 0;
 }
