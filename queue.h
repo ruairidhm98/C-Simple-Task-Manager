@@ -20,6 +20,8 @@ void q_print(Queue *queue);
 unsigned long q_size(Queue *queue);
 /* Sets done to true, so we know we are finished */
 void q_set_done(Queue *queue);
+/* Returns true if the queue is empty */
+int q_is_empty(Queue *queue);
 
 #endif 
 

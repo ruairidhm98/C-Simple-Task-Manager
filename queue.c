@@ -103,26 +103,22 @@ void (*q_pop(Queue *queue))(void) {
     void (*result)(void);
     Node *temp;
     
+    result = NULL;
     pthread_mutex_lock(&(queue -> mutex));
     /* Make the thread sleep until there is more work */
-    while (!(queue -> size) && !(queue -> done)) {
+    while (q_is_empty(queue) && !(queue -> done)) {
         printf("== Queue is empty ==\n");
         pthread_cond_wait(&(queue -> delete), &(queue -> mutex));
     }
-    /* If done was set to false, then deal with the case of the queue being empty */
-    if (!(queue -> size)) {
-        pthread_mutex_unlock(&(queue -> mutex));
-        return NULL;
-    }
-    
-    /* Ensuring more thread safety */
-    if (queue || queue -> head) {
+    /* Ensure that the queue has nodes that can be removed */
+    if (!q_is_empty(queue)) {
         temp = queue -> head;
-        result = temp -> fn;
         queue -> head = temp -> next;
-        queue -> size--;
+        result = temp -> fn;
         free((void *) temp);
+        queue -> size--;
     }
+
     pthread_mutex_unlock(&(queue -> mutex));
 
     return result;
@@ -134,9 +130,9 @@ void (*q_front(Queue *queue))(void) {
     void (*fn)(void);
 
     fn = NULL;
-    pthread_mutex_lock(&(queue->mutex));
+    pthread_mutex_lock(&(queue -> mutex));
     if (queue -> size) fn = queue -> head -> fn;
-    pthread_mutex_unlock(&(queue->mutex));
+    pthread_mutex_unlock(&(queue -> mutex));
 
     return fn;
 }
@@ -202,6 +198,9 @@ void q_set_done(Queue *queue) {
     /* Wake up all threads */
     pthread_cond_broadcast(&(queue -> delete));  
 }
+
+/* Returns true is the queue is empty */
+int q_is_empty(Queue *queue) { return !queue -> size; }
 
 /* Safe insert */
 void *insert(void *arg) {
