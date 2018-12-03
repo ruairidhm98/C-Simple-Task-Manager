@@ -91,8 +91,6 @@ int q_insert(Queue *queue, void (*fn)(void)) {
     }
     queue -> size++;
     pthread_mutex_unlock(&(queue -> mutex));
-    /* Notify one thread that is sleeping */
-    pthread_cond_signal(&(queue -> delete));
 
     return 1;
 } 
@@ -102,7 +100,7 @@ void (*q_pop(Queue *queue))(void) {
 
     void (*result)(void);
     Node *temp;
-    
+
     result = NULL;
     pthread_mutex_lock(&(queue -> mutex));
     /* Make the thread sleep until there is more work */
@@ -115,8 +113,8 @@ void (*q_pop(Queue *queue))(void) {
         temp = queue -> head;
         queue -> head = temp -> next;
         result = temp -> fn;
-        free((void *) temp);
         queue -> size--;
+        free((void *) temp);
     }
 
     pthread_mutex_unlock(&(queue -> mutex));
@@ -201,6 +199,39 @@ void q_set_done(Queue *queue) {
 
 /* Returns true is the queue is empty */
 int q_is_empty(Queue *queue) { return !queue -> size; }
+
+/* Trys to pop from queue */
+void (*q_try_pop(Queue *queue))(void) {
+
+    void (*result)(void);
+    int err;
+
+    result = NULL;
+    err = pthread_mutex_trylock(&(queue -> mutex));
+    if (err || q_is_empty(queue)) return NULL;
+
+    result = q_front(queue);
+    q_pop(queue);
+
+    pthread_mutex_lock(&(queue -> mutex));
+
+    return result;
+}
+
+/* Trys to push to the queue */
+int q_try_push(Queue *queue, void (*fn)(void)) {
+
+    int err;
+
+    err = pthread_mutex_trylock(&(queue -> mutex));
+    if (err) return 0;
+    q_insert(queue, fn);
+
+    pthread_mutex_unlock(&(queue -> mutex));
+    pthread_cond_signal(&(queue -> delete));
+
+    return 1;
+} 
 
 /* Safe insert */
 void *insert(void *arg) {
