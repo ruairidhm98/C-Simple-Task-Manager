@@ -14,7 +14,6 @@ struct task_system {
     Queue **work_q; // the work queue
     pthread_t *threads; // threads used to start tasks 
     unsigned int NUM_QUEUES; // number of queues
-    pthread_mutex_t ts_mutex; // mutex used to protect shared data
 }; 
 
 /* Arguments passed into run */
@@ -60,13 +59,6 @@ TaskSystem *ts_init(unsigned int numQueues) {
     } 
     
     ts -> NUM_QUEUES = numQueues;
-    /* Print error message and return NULL if memory allocation fails */
-    if (pthread_mutex_init(&(ts -> ts_mutex), NULL)) {
-        fprintf(stderr, "Error: failed to create mutex\n");
-        free((void *) ts);
-        ts = NULL;
-        return ts;
-    }
 
     ts -> work_q = (Queue **) malloc(sizeof(Queue *) * numQueues);
     if (!(ts -> work_q)) {
@@ -137,7 +129,6 @@ void ts_delete(TaskSystem *ts) {
     /* Free heap memory */
     for (i = 0; i < (ts -> NUM_QUEUES); i++) q_delete(ts -> work_q[i]);
 
-    pthread_mutex_destroy(&(ts -> ts_mutex)); 
     free((void *) ts -> work_q);
     free((void *) ts -> threads);
     free((void *) ts);
@@ -155,9 +146,11 @@ int main(int argc, char **argv) {
     int i;
 
     ts = ts_init(4);
-    for (i = 0; i < 50; i++)
-        ts_asynch(ts, test);
-
+    ts_asynch(ts, test);
+    ts_asynch(ts, test);
+    ts_asynch(ts, test);
+    ts_asynch(ts, test);
+    ts_asynch(ts, test);
     ts_delete(ts);
 
     return 0;
