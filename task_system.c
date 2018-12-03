@@ -7,15 +7,12 @@
 #include "task_system.h"
 #include "queue.h"
 
-#define THREADS_PER_QUEUE 2
-
 struct func_args *args;
 
 /* Task system structure */
 struct task_system {
     Queue **work_q; // the work queue
     pthread_t *threads; // threads used to start tasks 
-    unsigned int NUM_THREADS; // the number of threads in the task system  
     unsigned int NUM_QUEUES; // number of queues
     pthread_mutex_t ts_mutex; // mutex used to protect shared data
 }; 
@@ -62,7 +59,6 @@ TaskSystem *ts_init(unsigned int numQueues) {
         return ts;
     } 
     
-    ts -> NUM_THREADS = numQueues * THREADS_PER_QUEUE;
     ts -> NUM_QUEUES = numQueues;
     /* Print error message and return NULL if memory allocation fails */
     if (pthread_mutex_init(&(ts -> ts_mutex), NULL)) {
@@ -89,7 +85,7 @@ TaskSystem *ts_init(unsigned int numQueues) {
             return ts;
         }    
     }
-    ts -> threads = (pthread_t *) malloc(sizeof(pthread_t) * ts -> NUM_THREADS);
+    ts -> threads = (pthread_t *) malloc(sizeof(pthread_t) * numQueues);
     if (!(ts -> threads)) {
         fprintf(stderr, "Error: memory allocation failed\n");
         ts_delete(ts);
@@ -110,10 +106,9 @@ TaskSystem *ts_init(unsigned int numQueues) {
         args[i].queue = i;
     }
     /* Spawn threads */
-    for (i = 0, j = 0; i < (ts -> NUM_THREADS); i++) {
+    for (i = 0; i < numQueues; i++) {
         /* Make sure the correct arguments are being passed to the relevant thread */
-        if (!(i % THREADS_PER_QUEUE) && i) j++;
-        if (pthread_create(&(ts -> threads[i]), NULL, run, (void *) &(args[j]))) {
+        if (pthread_create(&(ts -> threads[i]), NULL, run, (void *) &(args[i]))) {
             fprintf(stderr, "Error: failed to create thread %d\n", i+1);
             ts_delete(ts);
             return ts;
@@ -138,7 +133,7 @@ void ts_delete(TaskSystem *ts) {
     /* Notify the task system we are done */
     for (i = 0; i < (ts -> NUM_QUEUES); i++) q_set_done(ts -> work_q[i]);
     /* Wait for threads to finish */
-    for (i = 0; i < (ts -> NUM_THREADS); i++) pthread_join(ts -> threads[i], NULL);
+    for (i = 0; i < (ts -> NUM_QUEUES); i++) pthread_join(ts -> threads[i], NULL);
     /* Free heap memory */
     for (i = 0; i < (ts -> NUM_QUEUES); i++) q_delete(ts -> work_q[i]);
 
