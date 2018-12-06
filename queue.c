@@ -91,6 +91,7 @@ int q_insert(Queue *queue, void (*fn)(void)) {
     }
     queue -> size++;
     pthread_mutex_unlock(&(queue -> mutex));
+    pthread_cond_signal(&(queue -> delete));
 
     return 1;
 } 
@@ -213,7 +214,7 @@ void (*q_try_pop(Queue *queue))(void) {
     result = q_front(queue);
     q_pop(queue);
 
-    pthread_mutex_lock(&(queue -> mutex));
+    pthread_mutex_unlock(&(queue -> mutex));
 
     return result;
 }
@@ -226,10 +227,8 @@ int q_try_push(Queue *queue, void (*fn)(void)) {
     err = pthread_mutex_trylock(&(queue -> mutex));
     if (err) return 0;
     q_insert(queue, fn);
-
     pthread_mutex_unlock(&(queue -> mutex));
     pthread_cond_signal(&(queue -> delete));
-
     return 1;
 } 
 

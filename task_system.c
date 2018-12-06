@@ -131,6 +131,7 @@ TaskSystem *ts_init(unsigned int numQueues) {
 
 /* Adds a task to one of the queues */
 void ts_asynch(TaskSystem *ts, void (*fn)(void)) { 
+    
     static int queue = 0;
     int i;
 
@@ -140,6 +141,7 @@ void ts_asynch(TaskSystem *ts, void (*fn)(void)) {
             return;
     
     q_insert(ts -> work_q[queue % (ts -> NUM_QUEUES)], fn); 
+
 }
 
 /* Deletes a task system object */
