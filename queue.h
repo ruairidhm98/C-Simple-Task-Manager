@@ -22,6 +22,10 @@ unsigned long q_size(Queue *queue);
 void q_set_done(Queue *queue);
 /* Returns true if the queue is empty */
 int q_is_empty(Queue *queue);
+/* Trys to pop from queue */
+void (*q_try_pop(Queue *queue))(void);
+/* Trys to push to queue */
+int q_try_push(Queue *queue, void(*fn)(void));
 
 #endif 
 

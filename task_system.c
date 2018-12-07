@@ -14,6 +14,7 @@ struct task_system {
     Queue **work_q; // the work queue
     pthread_t *threads; // threads used to start tasks 
     unsigned int NUM_QUEUES; // number of queues
+    sig_atomic_t index;
 }; 
 
 /* Arguments passed into run */
@@ -26,8 +27,8 @@ struct func_args {
 void *run(void *arg) {
 
     struct func_args *args;
+    unsigned int index, i;
     void (*fnPtr)(void);
-    unsigned int index;
     TaskSystem *ts;
 
     args = (struct func_args *) arg;
@@ -35,8 +36,16 @@ void *run(void *arg) {
     ts = args -> ts;
     /* Loop forever until notified we are done */
     while (true) {
-        fnPtr = q_pop(ts -> work_q[index]);    
-        if (!fnPtr) break;
+
+        for (i = index; i != (ts -> NUM_THREADS); i++) {
+            fnPtr = q_try_pop(ts -> work_q[(index + i) % (ts -> NUM_THREADS)]);
+            if (fnPtr) break;
+        }
+        if (!fnPtr) {
+            fnPtr = q_pop(ts -> work_q[index]);
+            if (!fnPtr) pthread_exit(NULL);
+        }
+
         fnPtr();
     }
 
@@ -58,8 +67,10 @@ TaskSystem *ts_init(unsigned int numQueues) {
         return ts;
     } 
     
-    ts -> NUM_QUEUES = numQueues;
 
+    ts -> NUM_THREADS = numQueues;
+    ts -> NUM_QUEUES = numQueues;
+    ts -> index = 0;
     ts -> work_q = (Queue **) malloc(sizeof(Queue *) * numQueues);
     if (!(ts -> work_q)) {
         fprintf(stderr, "Error: memory allocation failed\n");
@@ -98,23 +109,31 @@ TaskSystem *ts_init(unsigned int numQueues) {
         args[i].queue = i;
     }
     /* Spawn threads */
-    for (i = 0; i < numQueues; i++) {
+    for (i = 0; i < (ts -> NUM_THREADS); i++) {
         /* Make sure the correct arguments are being passed to the relevant thread */
         if (pthread_create(&(ts -> threads[i]), NULL, run, (void *) &(args[i]))) {
             fprintf(stderr, "Error: failed to create thread %d\n", i+1);
             ts_delete(ts);
             return ts;
         }
-
     }
+    printf("I get herssrse\n");
 
     return ts;
 }
 
 /* Adds a task to one of the queues */
 void ts_asynch(TaskSystem *ts, void (*fn)(void)) { 
-    static int queue = 0;
-    q_insert(ts -> work_q[queue++ % (ts -> NUM_QUEUES)], fn); 
+    
+    int i, n; 
+
+    i = (ts -> index)++;
+    for (n = 0; n < ts -> NUM_QUEUES; n++) 
+        if (q_try_push(ts -> work_q[(i + n) % (ts -> NUM_QUEUES)], fn)) 
+            return;
+    
+    q_insert(ts -> work_q[i% (ts -> NUM_QUEUES)], fn); 
+
 }
 
 /* Deletes a task system object */
@@ -146,11 +165,7 @@ int main(int argc, char **argv) {
     int i;
 
     ts = ts_init(4);
-    ts_asynch(ts, test);
-    ts_asynch(ts, test);
-    ts_asynch(ts, test);
-    ts_asynch(ts, test);
-    ts_asynch(ts, test);
+    for (i = 0; i < 10; i++) ts_asynch(ts, test);
     ts_delete(ts);
 
     return 0;
