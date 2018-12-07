@@ -37,7 +37,7 @@ void *run(void *arg) {
     /* Loop forever until notified we are done */
     while (true) {
 
-        for (i = index; i != (ts -> NUM_QUEUES); i++) {
+        for (i = 0; i != (ts -> NUM_QUEUES); i++) {
             fnPtr = q_try_pop(ts -> work_q[(index + i) % (ts -> NUM_QUEUES)]);
             if (fnPtr) break;
         }
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
     int i;
 
     ts = ts_init(4);
-    for (i = 0; i < 10; i++) ts_asynch(ts, test);
+    for (i = 0; i < 20; i++) ts_asynch(ts, test);
     ts_delete(ts);
 
     return 0;

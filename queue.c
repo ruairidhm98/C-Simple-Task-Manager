@@ -225,7 +225,7 @@ void q_set_done(Queue *queue) {
 }
 
 /* Returns true is the queue is empty */
-int q_is_empty(Queue *queue) { return !queue -> size; }
+int q_is_empty(Queue *queue) { return queue ? !queue -> size : 0; }
 
 /* Trys to pop from queue */
 void (*q_try_pop(Queue *queue))(void) {
