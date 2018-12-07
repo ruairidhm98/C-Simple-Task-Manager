@@ -37,8 +37,8 @@ void *run(void *arg) {
     /* Loop forever until notified we are done */
     while (true) {
 
-        for (i = index; i != (ts -> NUM_THREADS); i++) {
-            fnPtr = q_try_pop(ts -> work_q[(index + i) % (ts -> NUM_THREADS)]);
+        for (i = index; i != (ts -> NUM_QUEUES); i++) {
+            fnPtr = q_try_pop(ts -> work_q[(index + i) % (ts -> NUM_QUEUES)]);
             if (fnPtr) break;
         }
         if (!fnPtr) {
@@ -67,8 +67,6 @@ TaskSystem *ts_init(unsigned int numQueues) {
         return ts;
     } 
     
-
-    ts -> NUM_THREADS = numQueues;
     ts -> NUM_QUEUES = numQueues;
     ts -> index = 0;
     ts -> work_q = (Queue **) malloc(sizeof(Queue *) * numQueues);
@@ -109,7 +107,7 @@ TaskSystem *ts_init(unsigned int numQueues) {
         args[i].queue = i;
     }
     /* Spawn threads */
-    for (i = 0; i < (ts -> NUM_THREADS); i++) {
+    for (i = 0; i < (ts -> NUM_QUEUES); i++) {
         /* Make sure the correct arguments are being passed to the relevant thread */
         if (pthread_create(&(ts -> threads[i]), NULL, run, (void *) &(args[i]))) {
             fprintf(stderr, "Error: failed to create thread %d\n", i+1);
@@ -117,7 +115,6 @@ TaskSystem *ts_init(unsigned int numQueues) {
             return ts;
         }
     }
-    printf("I get herssrse\n");
 
     return ts;
 }
