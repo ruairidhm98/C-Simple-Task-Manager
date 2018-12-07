@@ -55,6 +55,7 @@ Queue *q_init() {
     /* Print error message and attribute fails to recieve attributes */
     if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK)) {
         fprintf(stderr, "Error: mutex failed to set attr PTHREAD_MUTEX_ERRORCHECK\n");
+        pthread_mutexattr_destroy(&attr);
         free((void *) q);
         q = NULL;
         return q;
@@ -62,12 +63,14 @@ Queue *q_init() {
     /* Print error message and return NULL if mutex fails to create */
     if (pthread_mutex_init(&(q -> err_mutex), &attr)) {
         fprintf(stderr, "Error: mutex failed to create with attr PTHREAD_MUTEX_ERRORCHECK\n");
+        pthread_mutexattr_destroy(&attr);
         free((void *) q);
-        q = NULL;
+        q = NULL; 
         return q;
     }
     if (pthread_mutex_init(&(q -> mutex), NULL)) {
         fprintf(stderr, "Error: mutex failed to create with attr PTHREAD_MUTEX_DEFAULT\n");
+        pthread_mutexattr_destroy(&attr);
         pthread_mutex_destroy(&(q -> err_mutex));
         free((void *) q);
         q = NULL;

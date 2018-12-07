@@ -132,7 +132,7 @@ void ts_asynch(TaskSystem *ts, void (*fn)(void)) {
         if (q_try_push(ts -> work_q[(i + n) % (ts -> NUM_QUEUES)], fn)) 
             return;
     
-    q_insert(ts -> work_q[i% (ts -> NUM_QUEUES)], fn); 
+    q_insert(ts -> work_q[i % (ts -> NUM_QUEUES)], fn); 
 
 }
 
