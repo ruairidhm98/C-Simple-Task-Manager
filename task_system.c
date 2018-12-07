@@ -16,6 +16,7 @@ struct task_system {
     unsigned int NUM_THREADS; // the number of threads in the task system  
     unsigned int NUM_QUEUES; // number of queues
     pthread_mutex_t ts_mutex; // mutex used to protect shared data
+    sig_atomic_t index;
 }; 
 
 /* Arguments passed into run */
@@ -38,7 +39,7 @@ void *run(void *arg) {
     /* Loop forever until notified we are done */
     while (true) {
 
-        for (i = 0; i != (ts -> NUM_THREADS); i++) {
+        for (i = index; i != (ts -> NUM_THREADS); i++) {
             fnPtr = q_try_pop(ts -> work_q[(index + i) % (ts -> NUM_THREADS)]);
             if (fnPtr) break;
         }
@@ -70,6 +71,7 @@ TaskSystem *ts_init(unsigned int numQueues) {
     
     ts -> NUM_THREADS = numQueues;
     ts -> NUM_QUEUES = numQueues;
+    ts -> index = 0;
     /* Print error message and return NULL if memory allocation fails */
     if (pthread_mutex_init(&(ts -> ts_mutex), NULL)) {
         fprintf(stderr, "Error: failed to create mutex\n");
@@ -132,15 +134,14 @@ TaskSystem *ts_init(unsigned int numQueues) {
 /* Adds a task to one of the queues */
 void ts_asynch(TaskSystem *ts, void (*fn)(void)) { 
     
-    static int queue = 0;
-    int i;
+    int i, n; 
 
-    queue++;
-    for (i = 0; i < ts -> NUM_QUEUES; i++) 
-        if (q_try_push(ts -> work_q[(i + queue) % (ts -> NUM_QUEUES)], fn)) 
+    i = (ts -> index)++;
+    for (n = 0; n < ts -> NUM_QUEUES; n++) 
+        if (q_try_push(ts -> work_q[(i + n) % (ts -> NUM_QUEUES)], fn)) 
             return;
     
-    q_insert(ts -> work_q[queue % (ts -> NUM_QUEUES)], fn); 
+    q_insert(ts -> work_q[i% (ts -> NUM_QUEUES)], fn); 
 
 }
 
@@ -174,8 +175,7 @@ int main(int argc, char **argv) {
     int i;
 
     ts = ts_init(4);
-    printf("I get here");
-    for (i = 0; i < 15; i++) ts_asynch(ts, test);
+    for (i = 0; i < 10; i++) ts_asynch(ts, test);
     ts_delete(ts);
 
     return 0;

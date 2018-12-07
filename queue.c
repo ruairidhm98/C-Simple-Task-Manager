@@ -16,7 +16,8 @@ struct queue {
     Node *head; // pointer to the head of the list
     Node *tail; // pointer to the tail of the list
     unsigned long size; // size counter
-    pthread_mutex_t mutex; // mutex used to ensure thread safety
+    pthread_mutex_t err_mutex; // mutex used to ensure thread safety
+    pthread_mutex_t mutex;
     pthread_cond_t delete; // condition variable used to notify threads when deleting
 };
 
@@ -29,6 +30,7 @@ struct args {
 /* Returns a pointer to an empty queue if successfull, NULL otherwise */
 Queue *q_init() {
 
+    pthread_mutexattr_t attr;
     Queue *q;
 
     q = (Queue *) malloc(sizeof(Queue));
@@ -43,13 +45,10 @@ Queue *q_init() {
     q -> head = NULL;
     q -> tail = NULL;
     q -> size = 0;
-    /* Print error message and return failure if mutex fails to create */
-    if (pthread_mutex_init(&(q -> mutex), NULL)) {
-        fprintf(stderr, "Error: mutex failed to create\n");
-        free((void *) q);
-        q = NULL;
-        return q;
-    }
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+    pthread_mutex_init(&(q -> err_mutex), &attr);
+    pthread_mutex_init(&(q -> mutex), NULL);
     /* Print error message and return NULL if condition variable fails to create */
     if (pthread_cond_init(&(q -> delete), NULL)) {
         fprintf(stderr, "Error: condition variable failed to create\n");
@@ -208,13 +207,11 @@ void (*q_try_pop(Queue *queue))(void) {
     int err;
 
     result = NULL;
-    err = pthread_mutex_trylock(&(queue -> mutex));
+    err = pthread_mutex_trylock(&(queue -> err_mutex));
     if (err || q_is_empty(queue)) return NULL;
-
     result = q_front(queue);
     q_pop(queue);
-
-    pthread_mutex_unlock(&(queue -> mutex));
+    pthread_mutex_unlock(&(queue -> err_mutex));
 
     return result;
 }
@@ -224,10 +221,10 @@ int q_try_push(Queue *queue, void (*fn)(void)) {
 
     int err;
 
-    err = pthread_mutex_trylock(&(queue -> mutex));
+    err = pthread_mutex_trylock(&(queue -> err_mutex));
     if (err) return 0;
     q_insert(queue, fn);
-    pthread_mutex_unlock(&(queue -> mutex));
+    pthread_mutex_unlock(&(queue -> err_mutex));
     pthread_cond_signal(&(queue -> delete));
     return 1;
 } 
