@@ -13,7 +13,6 @@ struct func_args *args;
 struct task_system {
     Queue **work_q; // the work queue
     pthread_t *threads; // threads used to start tasks 
-    unsigned int NUM_THREADS; // the number of threads in the task system  
     unsigned int NUM_QUEUES; // number of queues
     sig_atomic_t index;
 }; 
@@ -68,6 +67,7 @@ TaskSystem *ts_init(unsigned int numQueues) {
         return ts;
     } 
     
+
     ts -> NUM_THREADS = numQueues;
     ts -> NUM_QUEUES = numQueues;
     ts -> index = 0;
@@ -88,7 +88,7 @@ TaskSystem *ts_init(unsigned int numQueues) {
             return ts;
         }    
     }
-    ts -> threads = (pthread_t *) malloc(sizeof(pthread_t) * ts -> NUM_THREADS);
+    ts -> threads = (pthread_t *) malloc(sizeof(pthread_t) * numQueues);
     if (!(ts -> threads)) {
         fprintf(stderr, "Error: memory allocation failed\n");
         ts_delete(ts);
@@ -144,7 +144,7 @@ void ts_delete(TaskSystem *ts) {
     /* Notify the task system we are done */
     for (i = 0; i < (ts -> NUM_QUEUES); i++) q_set_done(ts -> work_q[i]);
     /* Wait for threads to finish */
-    for (i = 0; i < (ts -> NUM_THREADS); i++) pthread_join(ts -> threads[i], NULL);
+    for (i = 0; i < (ts -> NUM_QUEUES); i++) pthread_join(ts -> threads[i], NULL);
     /* Free heap memory */
     for (i = 0; i < (ts -> NUM_QUEUES); i++) q_delete(ts -> work_q[i]);
 
