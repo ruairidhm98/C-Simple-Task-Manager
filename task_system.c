@@ -15,7 +15,6 @@ struct task_system {
     pthread_t *threads; // threads used to start tasks 
     unsigned int NUM_THREADS; // the number of threads in the task system  
     unsigned int NUM_QUEUES; // number of queues
-    pthread_mutex_t ts_mutex; // mutex used to protect shared data
     sig_atomic_t index;
 }; 
 
@@ -72,14 +71,6 @@ TaskSystem *ts_init(unsigned int numQueues) {
     ts -> NUM_THREADS = numQueues;
     ts -> NUM_QUEUES = numQueues;
     ts -> index = 0;
-    /* Print error message and return NULL if memory allocation fails */
-    if (pthread_mutex_init(&(ts -> ts_mutex), NULL)) {
-        fprintf(stderr, "Error: failed to create mutex\n");
-        free((void *) ts);
-        ts = NULL;
-        return ts;
-    }
-
     ts -> work_q = (Queue **) malloc(sizeof(Queue *) * numQueues);
     if (!(ts -> work_q)) {
         fprintf(stderr, "Error: memory allocation failed\n");
@@ -157,7 +148,6 @@ void ts_delete(TaskSystem *ts) {
     /* Free heap memory */
     for (i = 0; i < (ts -> NUM_QUEUES); i++) q_delete(ts -> work_q[i]);
 
-    pthread_mutex_destroy(&(ts -> ts_mutex)); 
     free((void *) ts -> work_q);
     free((void *) ts -> threads);
     free((void *) ts);
