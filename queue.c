@@ -16,9 +16,10 @@ struct queue {
     Node *head; // pointer to the head of the list
     Node *tail; // pointer to the tail of the list
     unsigned long size; // size counter
-    pthread_mutex_t err_mutex; // mutex used to ensure thread safety in try pop and push
-    pthread_mutex_t mutex; // deafult mutex used in insertion operations
     pthread_cond_t delete; // condition variable used to notify threads when deleting
+    pthread_mutex_t mutex; // deafult mutex used in insertion operations
+    pthread_mutex_t err_mutex; // mutex used to ensure thread safety in try pop and push
+    pthread_mutexattr_t err_attr; // atributes used for the err_mutex
 };
 
 /* Arguments used in insert */
@@ -30,7 +31,6 @@ struct args {
 /* Returns a pointer to an empty queue if successfull, NULL otherwise */
 Queue *q_init() {
 
-    pthread_mutexattr_t attr;
     Queue *q;
 
     q = (Queue *) malloc(sizeof(Queue));
@@ -46,31 +46,31 @@ Queue *q_init() {
     q -> tail = NULL;
     q -> size = 0;
     /* Print error message and return NULL if mutex attribute fails to create */
-    if (pthread_mutexattr_init(&attr)) {
+    if (pthread_mutexattr_init(&(q -> err_attr))) {
         fprintf(stderr, "Error: mutexattr failed to cretate");
         free((void *) q);
         q = NULL;
         return q;
     }
     /* Print error message and attribute fails to recieve attributes */
-    if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK)) {
+    if (pthread_mutexattr_settype(&(q -> err_attr), PTHREAD_MUTEX_ERRORCHECK)) {
         fprintf(stderr, "Error: mutex failed to set attr PTHREAD_MUTEX_ERRORCHECK\n");
-        pthread_mutexattr_destroy(&attr);
+        pthread_mutexattr_destroy(&(q -> err_attr));
         free((void *) q);
         q = NULL;
         return q;
     }
     /* Print error message and return NULL if mutex fails to create */
-    if (pthread_mutex_init(&(q -> err_mutex), &attr)) {
+    if (pthread_mutex_init(&(q -> err_mutex), &(q -> err_attr))) {
         fprintf(stderr, "Error: mutex failed to create with attr PTHREAD_MUTEX_ERRORCHECK\n");
-        pthread_mutexattr_destroy(&attr);
+        pthread_mutexattr_destroy(&(q -> err_attr));
         free((void *) q);
         q = NULL; 
         return q;
     }
     if (pthread_mutex_init(&(q -> mutex), NULL)) {
         fprintf(stderr, "Error: mutex failed to create with attr PTHREAD_MUTEX_DEFAULT\n");
-        pthread_mutexattr_destroy(&attr);
+        pthread_mutexattr_destroy(&(q -> err_attr));
         pthread_mutex_destroy(&(q -> err_mutex));
         free((void *) q);
         q = NULL;
