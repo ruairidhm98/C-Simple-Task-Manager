@@ -1,5 +1,4 @@
 /* Simple task system which uses multiple queues, two threads are assigned to each queue */
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -14,7 +13,7 @@ struct task_system {
     Queue **work_q; // the work queue
     pthread_t *threads; // threads used to start tasks 
     unsigned int NUM_QUEUES; // number of queues
-    sig_atomic_t index;
+    sig_atomic_t index; // index used to try and push to queue 
 }; 
 
 /* Arguments passed into run */
@@ -27,7 +26,7 @@ struct func_args {
 void *run(void *arg) {
 
     struct func_args *args;
-    unsigned int index, i;
+    unsigned int index, i;  
     void (*fnPtr)(void);
     TaskSystem *ts;
 
