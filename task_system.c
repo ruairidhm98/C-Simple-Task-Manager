@@ -25,7 +25,7 @@ struct func_args {
 /* Runs the processes */
 void *run(void *arg) {
 
-    struct func_args *args;
+    struct func_args *args; 
     unsigned int index, i;  
     void (*fnPtr)(void);
     TaskSystem *ts;
@@ -106,14 +106,14 @@ TaskSystem *ts_init(unsigned int numQueues) {
         args[i].queue = i;
     }
     /* Spawn threads */
-    for (i = 0; i < (ts -> NUM_QUEUES); i++) {
+    for (i = 0; i < (ts -> NUM_QUEUES); i++) 
         /* Make sure the correct arguments are being passed to the relevant thread */
         if (pthread_create(&(ts -> threads[i]), NULL, run, (void *) &(args[i]))) {
             fprintf(stderr, "Error: failed to create thread %d\n", i+1);
             ts_delete(ts);
             return ts;
         }
-    }
+    
 
     return ts;
 }

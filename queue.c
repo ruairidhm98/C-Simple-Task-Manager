@@ -26,7 +26,7 @@ struct queue {
 struct args {
     Queue *queue; // queue being accessed
     void (*fn)(void); // function pointer being inserted
-};
+}; 
 
 /* Returns a pointer to an empty queue if successfull, NULL otherwise */
 Queue *q_init() {
