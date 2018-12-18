@@ -6,14 +6,14 @@
 #include "task_system.h"
 #include "queue.h"
 
-struct func_args *args;
 
 /* Task system structure */
 struct task_system {
     Queue **work_q; // the work queue
     pthread_t *threads; // threads used to start tasks 
     unsigned int NUM_QUEUES; // number of queues
-    sig_atomic_t index; // index used to try and push to queue 
+    sig_atomic_t index; // index used to try and push to queue
+    struct func_args *args; // array of arguments to functions
 }; 
 
 /* Arguments passed into run */
@@ -93,22 +93,22 @@ TaskSystem *ts_init(unsigned int numQueues) {
     }
 
     /* Create arguments to pass into run */
-    args = (struct func_args *) malloc(sizeof(struct func_args) * numQueues);
-    if (!args) {
+    ts -> args = (struct func_args *) malloc(sizeof(struct func_args) * numQueues);
+    if (!ts -> args) {
         fprintf(stderr, "Error: memory allocation failed\n");
-        free((void *) args);
+        free((void *) ts -> args);
         ts_delete(ts);
         return ts;
     }
     /* Fill arguments */
     for (i = 0; i < numQueues; i++) {
-        args[i].ts = ts;
-        args[i].queue = i;
+        ts -> args[i].ts = ts;
+        ts -> args[i].queue = i;
     }
     /* Spawn threads */
     for (i = 0; i < (ts -> NUM_QUEUES); i++) 
         /* Make sure the correct arguments are being passed to the relevant thread */
-        if (pthread_create(&(ts -> threads[i]), NULL, run, (void *) &(args[i]))) {
+        if (pthread_create(&(ts -> threads[i]), NULL, run, (void *) &(ts -> args[i]))) {
             fprintf(stderr, "Error: failed to create thread %d\n", i+1);
             ts_delete(ts);
             return ts;
@@ -146,8 +146,8 @@ void ts_delete(TaskSystem *ts) {
 
     free((void *) ts -> work_q);
     free((void *) ts -> threads);
+    free((void *)ts->args);
     free((void *) ts);
-    free((void *) args);
     ts = NULL;
 
 }
