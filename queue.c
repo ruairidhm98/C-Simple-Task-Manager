@@ -80,6 +80,8 @@ Queue *q_init() {
     if (pthread_cond_init(&(q -> delete), NULL)) {
         fprintf(stderr, "Error: condition variable failed to create\n");
         free((void *) q);
+        pthread_mutexattr_destroy(&(q -> err_attr));
+        pthread_mutex_destroy(&(q -> err_mutex));
         pthread_mutex_destroy(&(q -> mutex));
         q = NULL;
     }
