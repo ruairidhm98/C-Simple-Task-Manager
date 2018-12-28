@@ -1,4 +1,3 @@
-/* Simple task system which uses multiple queues, two threads are assigned to each queue */
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -65,7 +64,6 @@ TaskSystem *ts_init(unsigned int numQueues) {
         ts = NULL;
         return ts;
     } 
-    
     ts -> NUM_QUEUES = numQueues;
     ts -> index = 0;
     ts -> work_q = (Queue **) malloc(sizeof(Queue *) * numQueues);
@@ -91,7 +89,6 @@ TaskSystem *ts_init(unsigned int numQueues) {
         ts_delete(ts);
         return ts;
     }
-
     /* Create arguments to pass into run */
     ts -> args = (struct func_args *) malloc(sizeof(struct func_args) * numQueues);
     if (!ts -> args) {
@@ -114,7 +111,6 @@ TaskSystem *ts_init(unsigned int numQueues) {
             return ts;
         }
     
-
     return ts;
 }
 

@@ -6,7 +6,7 @@
 
 /* Node stored at each entry in the queue */
 struct q_elt {
-    void (*fn)(void); // data stored at node
+    void (*fn)(void); // data stored at node (function pointer to a void fn(void))
     struct q_elt *next; // pointer to the next node
 };
 
