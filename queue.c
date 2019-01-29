@@ -41,48 +41,48 @@ Queue *q_init() {
         q = NULL;
         return NULL;
     }
-    q -> done = false;
-    q -> head = NULL;
-    q -> tail = NULL;
-    q -> size = 0;
+    q->done = false;
+    q->head = NULL;
+    q->tail = NULL;
+    q->size = 0;
     /* Print error message and return NULL if mutex attribute fails to create */
-    if (pthread_mutexattr_init(&(q -> err_attr))) {
+    if (pthread_mutexattr_init(&(q->err_attr))) {
         fprintf(stderr, "Error: mutexattr failed to cretate");
         free((void *) q);
         q = NULL;
         return q;
     }
     /* Print error message and attribute fails to recieve attributes */
-    if (pthread_mutexattr_settype(&(q -> err_attr), PTHREAD_MUTEX_ERRORCHECK)) {
+    if (pthread_mutexattr_settype(&(q->err_attr), PTHREAD_MUTEX_ERRORCHECK)) {
         fprintf(stderr, "Error: mutex failed to set attr PTHREAD_MUTEX_ERRORCHECK\n");
-        pthread_mutexattr_destroy(&(q -> err_attr));
+        pthread_mutexattr_destroy(&(q->err_attr));
         free((void *) q);
         q = NULL;
         return q;
     }
     /* Print error message and return NULL if mutex fails to create */
-    if (pthread_mutex_init(&(q -> err_mutex), &(q -> err_attr))) {
+    if (pthread_mutex_init(&(q->err_mutex), &(q->err_attr))) {
         fprintf(stderr, "Error: mutex failed to create with attr PTHREAD_MUTEX_ERRORCHECK\n");
-        pthread_mutexattr_destroy(&(q -> err_attr));
+        pthread_mutexattr_destroy(&(q->err_attr));
         free((void *) q);
         q = NULL; 
         return q;
     }
-    if (pthread_mutex_init(&(q -> mutex), NULL)) {
+    if (pthread_mutex_init(&(q->mutex), NULL)) {
         fprintf(stderr, "Error: mutex failed to create with attr PTHREAD_MUTEX_DEFAULT\n");
-        pthread_mutexattr_destroy(&(q -> err_attr));
-        pthread_mutex_destroy(&(q -> err_mutex));
+        pthread_mutexattr_destroy(&(q->err_attr));
+        pthread_mutex_destroy(&(q->err_mutex));
         free((void *) q);
         q = NULL;
         return q;
     }
     /* Print error message and return NULL if condition variable fails to create */
-    if (pthread_cond_init(&(q -> delete), NULL)) {
+    if (pthread_cond_init(&(q->delete), NULL)) {
         fprintf(stderr, "Error: condition variable failed to create\n");
         free((void *) q);
-        pthread_mutexattr_destroy(&(q -> err_attr));
-        pthread_mutex_destroy(&(q -> err_mutex));
-        pthread_mutex_destroy(&(q -> mutex));
+        pthread_mutexattr_destroy(&(q->err_attr));
+        pthread_mutex_destroy(&(q->err_mutex));
+        pthread_mutex_destroy(&(q->mutex));
         q = NULL;
     }
 
@@ -100,26 +100,26 @@ int q_insert(Queue *queue, void (*fn)(void)) {
         free((void *) newNode);
         return 0;
     }
-    newNode -> fn = fn;
-    newNode -> next = NULL;
+    newNode->fn = fn;
+    newNode->next = NULL;
     /* Critical region */
-    pthread_mutex_lock(&(queue -> mutex));
+    pthread_mutex_lock(&(queue->mutex));
     /* Insertion at the head if queue is empty */
-    if (!queue -> head) 
-        queue -> head = newNode;
+    if (!queue->head) 
+        queue->head = newNode;
     /* This will only be executed after the 2nd attempt to insert */
-    else if (!queue -> tail) {
-        queue -> head -> next = newNode;
-        queue -> tail = newNode;
+    else if (!queue->tail) {
+        queue->head->next = newNode;
+        queue->tail = newNode;
     }
     /* Insert at the tail */
     else {
-        queue -> tail -> next = newNode;
-        queue -> tail = newNode;
+        queue->tail->next = newNode;
+        queue->tail = newNode;
     }
-    queue -> size++;
-    pthread_mutex_unlock(&(queue -> mutex));
-    pthread_cond_signal(&(queue -> delete));
+    queue->size++;
+    pthread_mutex_unlock(&(queue->mutex));
+    pthread_cond_signal(&(queue->delete));
 
     return 1;
 } 
@@ -131,22 +131,22 @@ void (*q_pop(Queue *queue))(void) {
     Node *temp;
 
     result = NULL;
-    pthread_mutex_lock(&(queue -> mutex));
+    pthread_mutex_lock(&(queue->mutex));
     /* Make the thread sleep until there is more work */
-    while (q_is_empty(queue) && !(queue -> done)) {
+    while (q_is_empty(queue) && !(queue->done)) {
         printf("== Queue is empty ==\n");
-        pthread_cond_wait(&(queue -> delete), &(queue -> mutex));
+        pthread_cond_wait(&(queue->delete), &(queue->mutex));
     }
     /* Ensure that the queue has nodes that can be removed */
     if (!q_is_empty(queue)) {
-        temp = queue -> head;
-        queue -> head = temp -> next;
-        result = temp -> fn;
-        queue -> size--;
+        temp = queue->head;
+        queue->head = temp->next;
+        result = temp->fn;
+        queue->size--;
         free((void *) temp);
     }
 
-    pthread_mutex_unlock(&(queue -> mutex));
+    pthread_mutex_unlock(&(queue->mutex));
 
     return result;
 }
@@ -157,9 +157,9 @@ void (*q_front(Queue *queue))(void) {
     void (*fn)(void);
 
     fn = NULL;
-    pthread_mutex_lock(&(queue -> mutex));
-    if (queue -> size) fn = queue -> head -> fn;
-    pthread_mutex_unlock(&(queue -> mutex));
+    pthread_mutex_lock(&(queue->mutex));
+    if (queue->size) fn = queue->head->fn;
+    pthread_mutex_unlock(&(queue->mutex));
 
     return fn;
 }
@@ -169,24 +169,24 @@ void q_delete(Queue *queue) {
 
     Node *cursor, *tmp;
 
-    pthread_mutex_lock(&(queue -> mutex));
+    pthread_mutex_lock(&(queue->mutex));
     if (!queue) {
-        pthread_mutex_unlock(&(queue -> mutex));
+        pthread_mutex_unlock(&(queue->mutex));
         return;
     }
-    cursor = queue -> head;
+    cursor = queue->head;
     /* Iterate through the list deleting each node */
     while (cursor) {
         tmp = cursor;
-        cursor = cursor -> next;
+        cursor = cursor->next;
         free((void *) tmp);
     }
     free((void *) queue);
-    queue -> head = NULL;
-    queue -> tail = NULL;
-    pthread_cond_destroy(&(queue -> delete));
-    pthread_mutex_unlock(&(queue -> mutex));
-    pthread_mutex_destroy(&(queue -> mutex));
+    queue->head = NULL;
+    queue->tail = NULL;
+    pthread_cond_destroy(&(queue->delete));
+    pthread_mutex_unlock(&(queue->mutex));
+    pthread_mutex_destroy(&(queue->mutex));
 
 }
 
@@ -195,39 +195,39 @@ void q_print(Queue *queue) {
 
     Node *cursor;
 
-    pthread_mutex_lock(&(queue -> mutex));
-    cursor = queue -> head;
+    pthread_mutex_lock(&(queue->mutex));
+    cursor = queue->head;
     /* 
      * Iterate through the queue, printing the pointer to a function stored
      * at each node
      */
     while (cursor) {
         /* Reached the end of the queue */
-        if (!(cursor -> next)) {
-            printf("%p\n", cursor -> fn);
+        if (!(cursor->next)) {
+            printf("%p\n", cursor->fn);
             break;
         }
-        printf("%p -> ", cursor -> fn);
-        cursor = cursor -> next;
+        printf("%p->", cursor->fn);
+        cursor = cursor->next;
     }
-    pthread_mutex_unlock(&(queue -> mutex));
+    pthread_mutex_unlock(&(queue->mutex));
 
 }
 
 /* Prints the contents of the queue */
-unsigned long q_size(Queue *queue) { return queue -> head ? queue -> size : -1; }
+unsigned long q_size(Queue *queue) { return queue->head ? queue->size : -1; }
 
 /* Set's done to true, to let threads know we are finished */
 void q_set_done(Queue *queue) {
-    pthread_mutex_lock(&(queue -> mutex));
-    queue -> done = true;
-    pthread_mutex_unlock(&(queue -> mutex));
+    pthread_mutex_lock(&(queue->mutex));
+    queue->done = true;
+    pthread_mutex_unlock(&(queue->mutex));
     /* Wake up all threads */
-    pthread_cond_broadcast(&(queue -> delete));  
+    pthread_cond_broadcast(&(queue->delete));  
 }
 
 /* Returns true is the queue is empty */
-int q_is_empty(Queue *queue) { return queue ? !queue -> size : 0; }
+int q_is_empty(Queue *queue) { return queue ? !queue->size : 0; }
 
 /* Trys to pop from queue */
 void (*q_try_pop(Queue *queue))(void) {
@@ -236,11 +236,11 @@ void (*q_try_pop(Queue *queue))(void) {
     int err;
 
     result = NULL;
-    err = pthread_mutex_trylock(&(queue -> err_mutex));
+    err = pthread_mutex_trylock(&(queue->err_mutex));
     if (err || q_is_empty(queue)) return NULL;
     result = q_front(queue);
     q_pop(queue);
-    pthread_mutex_unlock(&(queue -> err_mutex));
+    pthread_mutex_unlock(&(queue->err_mutex));
 
     return result;
 }
@@ -250,11 +250,11 @@ int q_try_push(Queue *queue, void (*fn)(void)) {
 
     int err;
 
-    err = pthread_mutex_trylock(&(queue -> err_mutex));
+    err = pthread_mutex_trylock(&(queue->err_mutex));
     if (err) return 0;
     q_insert(queue, fn);
-    pthread_mutex_unlock(&(queue -> err_mutex));
-    pthread_cond_signal(&(queue -> delete));
+    pthread_mutex_unlock(&(queue->err_mutex));
+    pthread_cond_signal(&(queue->delete));
     return 1;
 } 
 
@@ -266,8 +266,8 @@ void *insert(void *arg) {
     struct args *arguments;
 
     arguments = (struct args *) arg;
-    queue = arguments -> queue;
-    fn = arguments -> fn;
+    queue = arguments->queue;
+    fn = arguments->fn;
     q_insert(queue, fn);
 
     pthread_exit(NULL);
