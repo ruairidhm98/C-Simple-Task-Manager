@@ -13,7 +13,7 @@ void (*q_pop(Queue *queue))(void);
 /* Returns the front of the queue without removing it */
 void (*q_front(Queue *queue))(void);
 /* Deletes a queue object */
-void q_delete(Queue *queue); 
+void q_delete(Queue *queue);
 /* Prints the contents of the queue */
 void q_print(Queue *queue);
 /* Returns the size of the queue */
@@ -25,8 +25,6 @@ int q_is_empty(Queue *queue);
 /* Trys to pop from queue */
 void (*q_try_pop(Queue *queue))(void);
 /* Trys to push to queue */
-int q_try_push(Queue *queue, void(*fn)(void));
+int q_try_push(Queue *queue, void (*fn)(void));
 
-#endif 
-
-
+#endif
