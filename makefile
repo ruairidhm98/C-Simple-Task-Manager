@@ -1,5 +1,5 @@
 CC=clang
-CFLAGS=-Wall -Werror -std=c99 -g
+CFLAGS=-Wall -Werror -std=c17 -g
 PTHREAD=-lpthread
 EXE=system
 OBJ=queue.o task_system.o
@@ -10,7 +10,7 @@ $(EXE) : $(OBJ)
 
 # Compile C source code into object code
 $(OBJ) : task_system.c queue.c
-	$(CC) -c $^
+	$(CC) $(CFLAGS) -c $^
 
 # Deletes object code and executable
 clean:

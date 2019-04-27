@@ -7,34 +7,30 @@
 
 /* Task system structure */
 struct task_system {
-  Queue **work_q;              // the work queue
-  pthread_t *threads;          // threads used to start tasks
-  unsigned int NUM_QUEUES;     // number of queues
+  Queue **work_q; // the work queue
+  pthread_t *threads; // threads used to start tasks
+  unsigned int NUM_QUEUES; // number of queues
   volatile sig_atomic_t index; // index used to try and push to queue
-  struct func_args *args;      // array of arguments to functions
-  void (*ts_asynch)(
-      TaskSystem *ts,
-      void (*fn)(void)); // function pointer to insert into work queue
+  struct func_args *args; // array of arguments to functions
+  void (*ts_asynch)(TaskSystem *ts, void (*fn)(void)); // function pointer to insert into work queue
   void (*ts_delete)(TaskSystem *ts); // function pointer to delete task system
+  pthread_mutex_t mutex; // mutex used to protect shared data
 };
 
 /* Arguments passed into run */
 struct func_args {
   TaskSystem *ts; // the task systsem itself
-  int queue;      // index to the queue the thread operates on
+  int queue; // index to the queue the thread operates on
 };
 
 /* Runs the processes */
 void *run(void *arg) {
 
-  struct func_args *args;
-  unsigned int index, i;
-  void (*fnPtr)(void);
-  TaskSystem *ts;
+  struct func_args *args = (struct func_args *)arg;
+  unsigned int index = args->queue, i;
+  void (*fnPtr)(void) = NULL;
+  TaskSystem *ts = args->ts;
 
-  args = (struct func_args *)arg;
-  index = args->queue;
-  ts = args->ts;
   /* Loop forever until notified we are done */
   while (true) {
     for (i = index; i != (ts->NUM_QUEUES); i++) {
@@ -67,6 +63,8 @@ TaskSystem *ts_init(unsigned int numQueues) {
     ts = NULL;
     return ts;
   }
+  /* Make sure mutex creation was successfull */
+  
   ts->NUM_QUEUES = numQueues;
   ts->index = 0;
   ts->work_q = (Queue **)malloc(sizeof(Queue *) * numQueues);
@@ -126,7 +124,7 @@ void ts_asynch(TaskSystem *ts, void (*fn)(void)) {
 
   unsigned int i, n;
 
-  i = (ts->index)++;
+  i = (ts->index)++  % ts->NUM_QUEUES;
   for (n = 0; n < ts->NUM_QUEUES; n++)
     if (q_try_push(ts->work_q[(i + n) % (ts->NUM_QUEUES)], fn))
       return;
@@ -162,7 +160,7 @@ void test() { printf("Hello world\n"); }
 int main() {
 
   TaskSystem *ts = ts_init(4);
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 100; i++) {
     ts->ts_asynch(ts, test);
   }
 

@@ -112,11 +112,8 @@ int q_insert(Queue *queue, void (*fn)(void)) {
   /* Critical region */
   pthread_mutex_lock(&(queue->mutex));
   /* Insertion at the head if queue is empty */
-  if (!queue->head)
+  if (!queue->head) {
     queue->head = newNode;
-  /* This will only be executed after the 2nd attempt to insert */
-  else if (!queue->tail) {
-    queue->head->next = newNode;
     queue->tail = newNode;
   }
   /* Insert at the tail */
@@ -145,7 +142,7 @@ void (*q_pop(Queue *queue))(void) {
     pthread_cond_wait(&(queue->delete), &(queue->mutex));
   }
   /* Ensure that the queue has nodes that can be removed */
-  if (!q_is_empty(queue)) {
+  if (queue && queue->head) {
     temp = queue->head;
     queue->head = temp->next;
     result = temp->fn;
@@ -177,11 +174,11 @@ void q_delete(Queue *queue) {
 
   Node *cursor, *tmp;
 
-  pthread_mutex_lock(&(queue->mutex));
   if (!queue) {
-    pthread_mutex_unlock(&(queue->mutex));
     return;
   }
+
+  pthread_mutex_lock(&(queue->mutex));
   cursor = queue->head;
   /* Iterate through the list deleting each node */
   while (cursor) {
@@ -189,12 +186,10 @@ void q_delete(Queue *queue) {
     cursor = cursor->next;
     free((void *)tmp);
   }
-  free((void *)queue);
-  queue->head = NULL;
-  queue->tail = NULL;
   pthread_cond_destroy(&(queue->delete));
   pthread_mutex_unlock(&(queue->mutex));
   pthread_mutex_destroy(&(queue->mutex));
+  free((void *)queue);
 }
 
 /* Prints the contents of the queue */

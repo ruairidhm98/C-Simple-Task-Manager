@@ -1,3 +1,5 @@
 *.o
 .DS_STORE
 system
+.vscode
+task_system.plist
