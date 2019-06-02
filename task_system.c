@@ -156,13 +156,3 @@ void ts_delete(TaskSystem *ts) {
 
 /* Tester function */
 void test() { printf("Hello world\n"); }
-
-int main() {
-
-  TaskSystem *ts = ts_init(4);
-  for (int i = 0; i < 100; i++) {
-    ts->ts_asynch(ts, test);
-  }
-
-  return 0;
-}
